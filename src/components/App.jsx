@@ -7,99 +7,75 @@ import Loader from './loader/Loader';
 import Button from './button/Button';
 
 const App = () => {
-  const [pageFilterState, setPageFilterState] = useState({
-    page: 1,
-    filter: '',
-  });
-  const [otherState, setOtherState] = useState({
-    images: [],
-    showModal: false,
-    image: { url: '', alt: '' },
-    loader: false,
-    showBtn: false,
-  });
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [image, setImage] = useState({ url: '', alt: '' });
+  const [loader, setLoader] = useState(false);
+  const [showBtn, setShowBtn] = useState(false);
 
   useEffect(() => {
-    if (pageFilterState.filter !== '' || pageFilterState.page !== 1) {
-      getPictures(pageFilterState.filter, pageFilterState.page);
-    }
-  }, [pageFilterState]);
+    const getPictures = async (q, page) => {
+      setLoader(true);
+      try {
+        const data = await fetchPicture(q, page);
+        if (data.hits.length === 0)
+          return alert('Opps! There are no pictures available');
+
+        setImages(prevImages => [...prevImages, ...data.hits]);
+        setShowBtn(page < Math.ceil(data.totalHits / 12));
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        setLoader(false);
+      }
+    };
+
+    if (!query) return;
+
+    getPictures(query, page);
+  }, [query, page]);
 
   const onImageClick = obj => {
-    setOtherState(prevState => ({
-      ...prevState,
-      image: {
-        url: obj.largeImageURL,
-        alt: obj.tags,
-      },
-      showModal: true,
-    }));
+    setImage({
+      url: obj.largeImageURL,
+      alt: obj.tags,
+    });
+    setShowModal(true);
   };
 
   const toggleModal = () => {
-    setOtherState(prevState => ({
-      ...prevState,
-      showModal: !prevState.showModal,
-    }));
+    setShowModal(prevShowModal => !prevShowModal);
   };
 
-  const handleFilterSubmit = filter => {
-    setPageFilterState({ page: 1, filter });
-    setOtherState(prevState => ({
-      ...prevState,
-      images: [],
-    }));
+  const handleFilterSubmit = query => {
+    setPage(1);
+    setQuery(query);
+    setImages([]);
   };
 
   const handleOnButtonClick = () => {
-    setPageFilterState(prevState => ({
-      ...prevState,
-      page: prevState.page + 1,
-    }));
-  };
-
-  const getPictures = async (value, page) => {
-    setOtherState(prevState => ({
-      ...prevState,
-      loader: true,
-    }));
-    try {
-      const data = await fetchPicture(value, page);
-      if (data.hits.length === 0)
-        return alert('Opps! There are no pictures available');
-
-      setOtherState(prevState => ({
-        ...prevState,
-        images: [...prevState.images, ...data.hits],
-        showBtn: page < Math.ceil(data.totalHits / 12),
-      }));
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setOtherState(prevState => ({
-        ...prevState,
-        loader: false,
-      }));
-    }
+    setPage(prevPage => prevPage + 1);
   };
 
   return (
     <>
       <div>
         <Searchbar handleFilter={handleFilterSubmit} />
-        <ImageGallery images={otherState.images} onImageClick={onImageClick} />
+        <ImageGallery images={images} onImageClick={onImageClick} />
       </div>
 
-      {otherState.showModal && (
+      {showModal && (
         <Modal
-          imgURL={otherState.image.url}
-          imgAlt={otherState.image.alt}
+          imgURL={image.url}
+          imgAlt={image.alt}
           toggleModal={toggleModal}
         />
       )}
 
-      {otherState.showBtn && <Button onClick={handleOnButtonClick} />}
-      {otherState.loader && <Loader />}
+      {showBtn && <Button onClick={handleOnButtonClick} />}
+      {loader && <Loader />}
     </>
   );
 };
