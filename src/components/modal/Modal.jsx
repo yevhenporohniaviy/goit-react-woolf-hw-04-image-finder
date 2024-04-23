@@ -1,16 +1,20 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 
 const Modal = ({ imgURL, imgAlt, toggleModal }) => {
-  const closeModal = e => {
-    if (e.code === 'Escape' || e.target === e.currentTarget) {
-      toggleModal();
-    }
-  };
+  const closeModal = useCallback(
+    e => {
+      if (e.code === 'Escape' || e.target === e.currentTarget) {
+        toggleModal();
+      }
+    },
+    [toggleModal]
+  );
 
   useEffect(() => {
-    document.addEventListener('keydown', closeModal);
+    const handleKeyDown = e => closeModal(e);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('keydown', closeModal);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [closeModal]);
 
