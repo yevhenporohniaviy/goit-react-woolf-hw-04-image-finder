@@ -1,6 +1,6 @@
 import React from 'react';
-import ImageGalleryItem from './imageGalleryItem/ImageGalleryItem';
 import '../styles.css';
+import ImageGalleryItem from 'components/imageGalleryItem/ImageGalleryItem';
 
 const ImageGallery = ({ images, onImageClick }) => {
   return (

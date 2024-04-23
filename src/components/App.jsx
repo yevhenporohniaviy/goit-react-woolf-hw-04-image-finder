@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import ImageGallery from './imageGallery/ImageGallery';
 import Modal from './modal/Modal';
 import { fetchPicture } from './api/Api';
@@ -6,94 +6,102 @@ import Searchbar from 'components/searchbar/Searchbar';
 import Loader from './loader/Loader';
 import Button from './button/Button';
 
-export class App extends Component {
-  state = {
+const App = () => {
+  const [pageFilterState, setPageFilterState] = useState({
     page: 1,
-    images: [],
     filter: '',
+  });
+  const [otherState, setOtherState] = useState({
+    images: [],
     showModal: false,
-    image: {
-      url: '',
-      alt: '',
-    },
+    image: { url: '', alt: '' },
     loader: false,
     showBtn: false,
-  };
+  });
 
-  componentDidUpdate(_, prevState) {
-    if (
-      prevState.page !== this.state.page ||
-      prevState.filter !== this.state.filter
-    ) {
-      this.getPictures(this.state.filter, this.state.page);
+  useEffect(() => {
+    if (pageFilterState.filter !== '' || pageFilterState.page !== 1) {
+      getPictures(pageFilterState.filter, pageFilterState.page);
     }
-  }
+  }, [pageFilterState]);
 
-  onImageClick = obj => {
-    this.setState({
+  const onImageClick = obj => {
+    setOtherState(prevState => ({
+      ...prevState,
       image: {
         url: obj.largeImageURL,
         alt: obj.tags,
       },
-    });
-
-    this.toggleModal();
+      showModal: true,
+    }));
   };
 
-  toggleModal = () => {
-    this.setState(prevState => ({ showModal: !prevState.showModal }));
+  const toggleModal = () => {
+    setOtherState(prevState => ({
+      ...prevState,
+      showModal: !prevState.showModal,
+    }));
   };
 
-  handleFilterSubmit = filter => {
-    this.setState({ filter: filter, page: 1, images: [] });
+  const handleFilterSubmit = filter => {
+    setPageFilterState({ page: 1, filter });
+    setOtherState(prevState => ({
+      ...prevState,
+      images: [],
+    }));
   };
 
-  handleOnButtonClick = () => {
-    this.setState(prevState => ({
+  const handleOnButtonClick = () => {
+    setPageFilterState(prevState => ({
+      ...prevState,
       page: prevState.page + 1,
     }));
   };
 
-  getPictures = async (value, page) => {
-    this.setState({ loader: true });
+  const getPictures = async (value, page) => {
+    setOtherState(prevState => ({
+      ...prevState,
+      loader: true,
+    }));
     try {
       const data = await fetchPicture(value, page);
       if (data.hits.length === 0)
         return alert('Opps! There are no pictures available');
 
-      this.setState(prevState => ({
+      setOtherState(prevState => ({
+        ...prevState,
         images: [...prevState.images, ...data.hits],
-        showBtn: this.state.page < Math.ceil(data.totalHits / 12),
+        showBtn: page < Math.ceil(data.totalHits / 12),
       }));
     } catch (error) {
       alert(error.message);
     } finally {
-      this.setState({ loader: false });
+      setOtherState(prevState => ({
+        ...prevState,
+        loader: false,
+      }));
     }
   };
 
-  render() {
-    return (
-      <>
-        <div>
-          <Searchbar handleFilter={this.handleFilterSubmit} />
-          <ImageGallery
-            images={this.state.images}
-            onImageClick={this.onImageClick}
-          />
-        </div>
+  return (
+    <>
+      <div>
+        <Searchbar handleFilter={handleFilterSubmit} />
+        <ImageGallery images={otherState.images} onImageClick={onImageClick} />
+      </div>
 
-        {this.state.showModal && (
-          <Modal
-            imgURL={this.state.image.url}
-            imgAlt={this.state.image.alt}
-            toggleModal={this.toggleModal}
-          />
-        )}
+      {otherState.showModal && (
+        <Modal
+          imgURL={otherState.image.url}
+          imgAlt={otherState.image.alt}
+          toggleModal={toggleModal}
+        />
+      )}
 
-        {this.state.showBtn && <Button onClick={this.handleOnButtonClick} />}
-        {this.state.loader && <Loader />}
-      </>
-    );
-  }
-}
+      {otherState.showBtn && <Button onClick={handleOnButtonClick} />}
+      {otherState.loader && <Loader />}
+    </>
+  );
+};
+
+export default App;
